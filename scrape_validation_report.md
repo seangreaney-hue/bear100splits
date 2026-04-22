@@ -83,7 +83,11 @@ Finish (Mile 100.0)
 
 ### Group 3 — 19 columns (4 years: 2022–2025)
 
-Similar to Group 2 but Cowley Canyon dropped and aid station mileages slightly adjusted:
+Starting in 2022, the course was rerouted in the Richards Hollow / Cowley Canyon section. The two separate aid stations that existed on the older course — Richards Hollow (~mile 22.5) and Cowley Canyon (~mile 30.0) — were replaced by a single checkpoint called **Upper Richards Hollow at mile 28.0**. This reduced the total tracked aid stations from 14 to 13 (hence 19 columns instead of 20). A 2023 race report confirms runners pass "Upper Richards Hollow" with no mention of either prior station.
+
+The specific reason for this reroute has not been publicly documented. The bear100.com course directions page still lists Richards Hollow and Cowley Canyon as of this writing, suggesting the page has not been updated to reflect the current routing. The most likely explanations are a trail access or land permit change in the lower canyon section. The race directors (bear100info@gmail.com) would be the authoritative source.
+
+Similar to Group 2 but with Upper Richards Hollow replacing both Richards Hollow and Cowley Canyon:
 
 ```
 O/G Place | Bib | Name | Category | From | Status
@@ -104,7 +108,16 @@ Finish (Mile 100.0)
 
 ### Unique — 20 columns (2016 only)
 
-The 2016 course ran as a point-to-point out-and-back. Aid stations appear as both Outbound and Inbound legs, making this year's schema entirely different from all others:
+The 2016 course was the result of two sequential last-minute reroutes:
+
+1. **~2 weeks before the race:** A wildfire burned through part of the standard Logan→Fish Haven point-to-point route, forcing an alternate course announcement.
+2. **~24 hours before the race:** A severe weather forecast (heavy snow at elevation) prompted a second reroute on top of the first.
+
+The final course was an **out-and-back from Logan City Park to Tony's Grove**, with a Bonneville Shoreline Trail extension at the start to make up distance. Race-day conditions were severe: rain and mud at the start, deteriorating to snow and a blinding blizzard overnight. This is why aid stations appear as both Outbound and Inbound legs in the data.
+
+The race website notes: *"The alternate course used in 2016 isn't eligible. If that course is used again due to weather, the CR bonus isn't enabled for that year."* No times from 2016 count toward standard course records.
+
+The 2016 schema is entirely different from all other years:
 
 ```
 O/G Place | Bib | Name | Category | From | Status
