@@ -166,6 +166,41 @@ Separation of concerns: `data.py` loads and cleans, `analysis.py` computes, `cha
 - **Course event annotations**: vertical reference lines at 2016 and 2022 on all three time-series line charts; contextual banner on Podium when 2016 is selected.
 - **Aid station charts redesigned**: total time and avg per-stop charts now use `x=era, color=quintile` (instead of `x=quintile, color=era`). Added a new bar chart of per-station times with an era dropdown, alongside the existing faceted line chart.
 
+### Mobile optimization (Apr 2026)
+
+A multi-pass effort to make the dashboard usable at ~390 px viewports without sacrificing desktop quality. All chart-related changes live in `dashboard/pages/1_Home.py` and `dashboard/app.py`.
+
+**Universal chart polish** (in shared `CHART_DEFAULTS` / `CHART_CONFIG` constants, mirrored across both files):
+
+- Plotly modebar hidden everywhere via `CHART_CONFIG = {"displayModeBar": False}`, passed to every `st.plotly_chart(...)` call. The screenshot/zoom/pan icons cluttered the header zone and were useless on touch.
+- Legend moved to bottom horizontal (`orientation="h"`, `yanchor="top"`, `y=-0.15`). Frees the right side and the top, both of which were colliding with annotations and modebar at narrow widths.
+- Margins tightened to `l=20, r=20, t=30, b=30` to recover horizontal space on mobile.
+
+**Race History (`pages/1_Home.py`)**:
+
+- Course event annotations shortened to plain year labels ("2016", "2022") and repositioned to `bottom left` / `bottom right` so they no longer fight the legend or each other.
+- Y-axes get `automargin=True` so the rotated "DNF Rate" right-axis title doesn't clip on mobile.
+
+**Era labels (`_ERA_LABELS`)** shortened from "Pre-2022 (13 aid stations)" / "2016 reroute (13 aid stations)" / "2022+ (12 aid stations)" to "Pre-2022" / "2016 reroute" / "2022+". The aid-station-count detail now lives in the section caption above the charts. The long form auto-rotated x-tick labels on mobile, which then collided with the bottom legend.
+
+**Aid station time through the race (faceted line chart)**: now rendered through a new `render_scrollable_chart` helper that wraps the figure in a horizontally-scrollable iframe via `streamlit.components.v1.html`. The helper renders three "Pre-2022 / 2016 reroute / 2022+" jump buttons above the chart that JS-scroll the iframe to each subplot — Plotly's native scrollbar is too thin to be a discoverable target, so explicit buttons are the primary nav. Plotly's drag-zoom is disabled inside the iframe (`dragmode=False`) so a finger swipe scrolls the container instead of being captured by Plotly's box-zoom. On desktop the iframe fits its full 900 px content width and all three subplots are visible without scrolling.
+
+**Average time per aid station stop (13-station bar chart)**: rotated to horizontal bars (`orientation="h"`, `x="avg_minutes"`, `y="Station"`, `height=720`). All 13 stations now fit vertically with no scroll required; #01 sits at the top of the y-axis (Plotly's default for horizontal categorical) and #13 at the bottom, matching race order. Era selection still works through the existing dropdown.
+
+**Validation tooling** — new `scripts/screenshot_charts.py` uses Playwright to drive a headless Chromium and capture full-page screenshots at mobile (390×6500) and desktop (1440×6500) viewports. Walks the page after load to mount lazy-rendered Streamlit content. Output lands in `scripts/screenshots/`, which is gitignored. One-time setup:
+
+```
+pip install playwright
+playwright install chromium
+```
+
+Typical use:
+
+```
+streamlit run dashboard/app.py --server.port 8502 --server.headless true
+python scripts/screenshot_charts.py
+```
+
 ---
 
 ## Deviations from plan guidelines (not yet resolved)
@@ -181,3 +216,5 @@ These are noted for awareness — no code changes made.
 4. **Background bands not used for era separation.** Design direction section "lean toward (b)" recommends shaded background bands on time-series to mark eras. We used vertical event lines instead, which is thinner but doesn't communicate era *spans*.
 
 5. **Gender toggle on Racer history.** Original scope said "# of male and female entrants over time (two labeled lines)" — implying the two lines should be Male and Female, not Starters and Finishers. The implementation changed this intentionally, but it diverges from the written spec.
+
+6. **Plotly box-zoom drag still active on most charts.** `render_scrollable_chart` disables it (`dragmode=False`) inside its iframe, but the two scrollable charts are the only ones that got the fix. Every other chart — Race History, Overall yearly average finish, Total time spent in aid stations, Average time per aid station stop, plus all four charts on the Data Notes page — still has Plotly's default click-and-drag box-zoom. On touch devices this captures vertical-scroll gestures and turns them into zoom-region selections, breaking page scroll whenever a finger lands inside a chart. **Fix:** add `dragmode=False` to the shared `CHART_DEFAULTS` dict in both `dashboard/pages/1_Home.py` and `dashboard/app.py` so the default applies globally. Single-line change in each file.
