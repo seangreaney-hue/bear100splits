@@ -24,7 +24,8 @@ st.caption("Raw CSV view (per-year analytics coming in a later iteration).")
 runners, _ = load_all()
 
 year_options = sorted(runners["year"].unique(), reverse=True)
-selected_year = st.selectbox("Select year", year_options, index=0)
+_year_col, _ = st.columns([1, 4])
+selected_year = _year_col.selectbox("Select year", year_options, index=0)
 
 # Repo root is two levels up from this file: dashboard/pages/ → dashboard/ → repo
 repo_root = Path(__file__).parent.parent.parent
