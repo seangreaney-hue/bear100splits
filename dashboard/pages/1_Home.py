@@ -1,11 +1,7 @@
 """
 Bear 100 Dashboard — Home page.
 
-Minimal end-to-end prototype (Path B): everything inline, default styling.
-We'll extract reusable charts and add the dark theme after the structure proves out.
-
-Run with:
-    streamlit run dashboard/app.py
+Reached via the sidebar from the Data Notes entry page.
 """
 
 from __future__ import annotations
@@ -20,7 +16,7 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 # Make data and analysis modules importable when running via `streamlit run`
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from data import load_all  # noqa: E402
 from analysis import (  # noqa: E402
     aid_time_per_quintile_per_station,

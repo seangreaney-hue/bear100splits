@@ -169,16 +169,23 @@ def load_year_csv(year: int, csv_path: Path) -> tuple[list[dict], list[dict]]:
                     in_sec, out_sec = t, t
                     valid = t is not None
                     duration: int | None = 0 if valid else None
+                    quality_flag = "finish"
                 else:
                     in_sec, out_sec, valid = parse_split_cell(cell)
                     # Compute duration only if valid AND non-negative. Negative durations exist
                     # in the source data (out-time before in-time) — ~0.2% of splits. Treat
                     # those as "runner reached station, but duration is unreliable".
-                    if valid and out_sec is not None and in_sec is not None:
-                        raw_duration = out_sec - in_sec
-                        duration = raw_duration if raw_duration >= 0 else None
-                    else:
+                    if not valid:
                         duration = None
+                        quality_flag = "incomplete"
+                    else:
+                        raw_duration = (out_sec or 0) - (in_sec or 0)
+                        if raw_duration < 0:
+                            duration = None
+                            quality_flag = "negative_duration"
+                        else:
+                            duration = raw_duration
+                            quality_flag = "ok"
 
                 splits_rows.append(
                     {
@@ -191,6 +198,7 @@ def load_year_csv(year: int, csv_path: Path) -> tuple[list[dict], list[dict]]:
                         "out_seconds": out_sec,
                         "aid_duration_seconds": duration,
                         "is_valid_split": valid,
+                        "quality_flag": quality_flag,
                     }
                 )
 
@@ -227,6 +235,7 @@ def _clean_phantom_out_times(splits_df: pd.DataFrame) -> pd.DataFrame:
         & (df["in_seconds"] != df["out_seconds"])
     )
     df.loc[phantom_mask, "aid_duration_seconds"] = None
+    df.loc[phantom_mask, "quality_flag"] = "phantom_duplicate"
     df = df.drop(columns=["next_in_seconds"])
     return df
 
