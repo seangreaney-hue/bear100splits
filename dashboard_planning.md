@@ -76,7 +76,9 @@ The markdown validation file names them Groups 1/2/3 + Unique (2016). The user r
 
 ### 7. Aid station analysis only covers ~15 years
 
-The 7-column years (1999–2007, 2011, 2012) and 2016 have no split data. Aid station analysis applies only to Group 2 (2008–2010, 2013–2015, 2017–2021) and Group 3 (2022–2025). This cuts the aid-station dataset roughly in half — still plenty of data, but worth knowing.
+The 7-column years (1999–2007, 2011, 2012) have no split data. Aid station analysis applies to Group 2 (2008–2010, 2013–2015, 2017–2021), 2016 (own group, in/out times confirmed present), and Group 3 (2022–2025). This cuts the aid-station dataset roughly in half — still plenty of data, but worth knowing.
+
+**Correction (Apr 2026):** Original note incorrectly excluded 2016. Decision #4 confirmed 2016 has valid in/out split data with 13 aid stations. Station counts throughout exclude the Finish row: Group 2 = 13 aid stations, 2016 = 13 aid stations, Group 3 = 12 aid stations.
 
 ## Decisions
 
@@ -99,6 +101,8 @@ The 7-column years (1999–2007, 2011, 2012) and 2016 have no split data. Aid st
 
 - **Total-time analysis:** drop runners who have any missing aid station splits.
 - **Per-station average analysis:** runners with missing data elsewhere can still contribute to stations where they have valid in/out times.
+
+**Further revision (Apr 2026):** Original approach assigned quintiles from all finishers, then dropped incomplete runners — this introduced selection bias, as Q5 (slowest) runners are more likely to have missing splits, making Q5 look artificially fast. Fix: quintile boundaries are now computed *within the complete-data population only* for the total-time chart. The per-station chart retains the original approach (all finishers, valid splits where present) since it uses individual splits not totals.
 
 ## Proposed folder structure
 
@@ -143,3 +147,37 @@ Separation of concerns: `data.py` loads and cleans, `analysis.py` computes, `cha
 - Navigation from Home to a specific year's detailed view
 - For the prototype: just display the raw CSV data for that year
 - Full per-year analytics deferred to a future iteration
+
+---
+
+## Implementation status (as of Apr 2026)
+
+### What's been built
+
+- `data.py` — CSV loading, group assignment, derived columns (`is_starter`, etc.)
+- `analysis.py` — all analytical functions: `hero_stats`, `racer_history_per_year`, `dnf_rate_per_year`, `podium_per_year`, `top_n_average_per_year`, `top_n_average_per_group`, `overall_finish_average_per_year`, `assign_finisher_quintiles`, `total_aid_time_per_quintile`, `aid_time_per_quintile_per_station`
+- `app.py` — Home page with all planned sections
+- `pages/1_Year_Details.py` — year detail page (raw CSV + summary metrics)
+
+### Changes from original scope
+
+- **"Starters over time" → "Racer history"**: chart now shows Starters and Finishers as two lines (not Male/Female), with gender filter applied. Starters line gaps at Group 1 years (1999–2007, 2011–2012) where only finisher records exist.
+- **DNF rate merged into Racer history**: instead of a standalone DNF/DNS section, DNF rate is a dashed secondary-axis line on the Racer history chart.
+- **Course event annotations**: vertical reference lines at 2016 and 2022 on all three time-series line charts; contextual banner on Podium when 2016 is selected.
+- **Aid station charts redesigned**: total time and avg per-stop charts now use `x=era, color=quintile` (instead of `x=quintile, color=era`). Added a new bar chart of per-station times with an era dropdown, alongside the existing faceted line chart.
+
+---
+
+## Deviations from plan guidelines (not yet resolved)
+
+These are noted for awareness — no code changes made.
+
+1. **`charts.py` was never created.** The planned folder structure calls for a `charts.py` with reusable Plotly chart builders. All chart code is currently inline in `app.py`. This violates the separation-of-concerns principle stated in the folder structure section. Should be extracted when the chart set stabilises.
+
+2. **Dark theme not configured.** Decision #2 specifies a dark "long overnight ultra" vibe with deep slate background and amber/warm accents, implemented via `.streamlit/config.toml`. No `config.toml` exists. Charts are rendered with Plotly defaults on the default Streamlit theme.
+
+3. **No direct labeling on line charts.** Design direction calls for Bloomberg/FT-style direct labels instead of legends. All charts use Plotly legends.
+
+4. **Background bands not used for era separation.** Design direction section "lean toward (b)" recommends shaded background bands on time-series to mark eras. We used vertical event lines instead, which is thinner but doesn't communicate era *spans*.
+
+5. **Gender toggle on Racer history.** Original scope said "# of male and female entrants over time (two labeled lines)" — implying the two lines should be Male and Female, not Starters and Finishers. The implementation changed this intentionally, but it diverges from the written spec.
