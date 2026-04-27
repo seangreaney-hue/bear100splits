@@ -360,43 +360,59 @@ def aid_time_per_quintile_per_station(
 def total_aid_time_per_quintile(
     runners: pd.DataFrame, splits: pd.DataFrame, gender: str | None = None
 ) -> pd.DataFrame:
-    """Average TOTAL time spent in aid stations per (group, quintile). Only runners who
-    have valid durations at EVERY non-Finish station in their year are counted (per user
-    spec: drop runners with missing data from totals).
-    Columns: group, quintile, avg_total_aid_seconds, n_runners, stations_in_group."""
-    runners_q = assign_finisher_quintiles(runners)
-    runners_q = _filter_gender(runners_q, gender)
-    runners_q = runners_q[runners_q["quintile"].notna()]
+    """Average TOTAL time spent in aid stations per (group, quintile).
 
-    # Count expected stations per year (excluding Finish)
+    Quintiles are assigned only among finishers who have a valid duration at every
+    non-Finish station in their year. This prevents selection bias: if we assigned
+    quintiles from all finishers first and then dropped incomplete ones, slower runners
+    (Q5) — who are more likely to have missing splits — would be underrepresented,
+    making Q5 look artificially fast.
+
+    The per-station chart (aid_time_per_quintile_per_station) uses a separate quintile
+    assignment that includes all finishers, so individual valid splits are not wasted.
+
+    Columns: group, quintile, avg_total_aid_seconds, n_runners, stations_in_group.
+    """
+    non_finish_splits = splits[splits["station_name"] != "Finish"]
+
+    # Count expected stations per year
     year_station_count = (
-        splits[splits["station_name"] != "Finish"]
-        .groupby("year")["station_name"]
+        non_finish_splits.groupby("year")["station_name"]
         .nunique()
         .to_dict()
     )
 
-    non_finish = splits[splits["station_name"] != "Finish"].merge(
-        runners_q[["year", "runner_idx", "group", "gender", "quintile"]],
-        on=["year", "runner_idx"],
-        how="inner",
-    )
-
-    # For each runner, count valid durations and sum them.
-    per_runner = (
-        non_finish.groupby(["year", "runner_idx", "group", "gender", "quintile"])
-        .agg(
-            total_aid_seconds=("aid_duration_seconds", "sum"),
-            valid_count=("aid_duration_seconds", lambda x: x.notna().sum()),
-        )
+    # Identify runners with a valid duration at every station in their year
+    per_runner_valid = (
+        non_finish_splits.groupby(["year", "runner_idx"])
+        .agg(valid_count=("aid_duration_seconds", lambda x: x.notna().sum()))
         .reset_index()
     )
-    # Keep only runners with complete data
-    per_runner["expected"] = per_runner["year"].map(year_station_count)
-    complete = per_runner[per_runner["valid_count"] == per_runner["expected"]]
+    per_runner_valid["expected"] = per_runner_valid["year"].map(year_station_count)
+    complete_idx = per_runner_valid[
+        per_runner_valid["valid_count"] == per_runner_valid["expected"]
+    ][["year", "runner_idx"]]
+
+    # Assign quintiles only among finishers who have complete split data
+    runners_complete = runners.merge(complete_idx, on=["year", "runner_idx"], how="inner")
+    runners_q = assign_finisher_quintiles(runners_complete)
+    runners_q = _filter_gender(runners_q, gender)
+    runners_q = runners_q[runners_q["quintile"].notna()]
+
+    # Sum aid time per runner — all splits are valid for these runners
+    per_runner = (
+        non_finish_splits.merge(
+            runners_q[["year", "runner_idx", "group", "gender", "quintile"]],
+            on=["year", "runner_idx"],
+            how="inner",
+        )
+        .groupby(["year", "runner_idx", "group", "gender", "quintile"])
+        .agg(total_aid_seconds=("aid_duration_seconds", "sum"))
+        .reset_index()
+    )
 
     result = (
-        complete.groupby(["group", "quintile"])
+        per_runner.groupby(["group", "quintile"])
         .agg(
             avg_total_aid_seconds=("total_aid_seconds", "mean"),
             n_runners=("total_aid_seconds", "size"),
@@ -404,9 +420,10 @@ def total_aid_time_per_quintile(
         .reset_index()
     )
 
-    # Add how many stations the group typically has (for context in chart labels)
     group_stations = {
-        group: splits[(splits["year"].isin(complete[complete["group"] == group]["year"].unique())) & (splits["station_name"] != "Finish")]["station_name"].nunique()
+        group: non_finish_splits[
+            non_finish_splits["year"].isin(per_runner[per_runner["group"] == group]["year"].unique())
+        ]["station_name"].nunique()
         for group in result["group"].unique()
     }
     result["stations_in_group"] = result["group"].map(group_stations)

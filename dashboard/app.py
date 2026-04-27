@@ -245,60 +245,113 @@ st.caption(
 
 st.header("Aid station analysis")
 st.caption(
-    "Aid station data only exists for years with split timing. "
-    "Groups: 2008–2010, 2013–2015, 2017–2021 (Group 2, 14 stations); "
-    "2016 (out-and-back reroute, separate era); "
-    "2022–2025 (Group 3, permanent course change — 13 stations). "
-    "Group 1 years (1999–2007, 2011–2012) are excluded."
+    "No split timing data available for years 1999-2007, 2011-2012. "
+    "2016 - out-and-back reroute, 13 aid stations. "
+    "2022–2025 - permanent course change; 12 aid stations. "
 )
 
-# Total time per quintile per group
+# Shared era config for aid station charts
+_ERA_LABELS = {
+    "Group 2": "Pre-2022 (13 aid stations)",
+    "2016": "2016 reroute (13 aid stations)",
+    "Group 3": "2022+ (12 aid stations)",
+}
+_ERA_ORDER = ["Pre-2022 (13 aid stations)", "2016 reroute (13 aid stations)", "2022+ (12 aid stations)"]
+
+# Pre-compute per-station data (shared by all aid station charts below)
+ats_df = aid_time_per_quintile_per_station(runners, splits, gender=gender_filter)
+ats_df["avg_minutes"] = ats_df["avg_duration_seconds"] / 60
+ats_df["quintile"] = ats_df["quintile"].astype(int)
+ats_df["Quintile"] = ats_df["quintile"].astype(str)
+ats_df["era"] = ats_df["group"].map(_ERA_LABELS)
+
+# Total time per quintile — bars grouped by quintile, clustered by era
 st.subheader("Total time spent in aid stations, by finisher quintile")
 st.caption(
-    "Quintile 1 = fastest 20% of finishers in their year/gender. Only runners with complete valid splits are counted in totals."
+    "Quintile 1 = fastest 20% of finishers. Only runners with a valid split at every station are counted. "
+    "Quintiles are assigned within this complete-data population."
 )
 
 tot_df = total_aid_time_per_quintile(runners, splits, gender=gender_filter)
 tot_df["avg_total_minutes"] = tot_df["avg_total_aid_seconds"] / 60
+tot_df["era"] = tot_df["group"].map(_ERA_LABELS)
+tot_df["Quintile"] = tot_df["quintile"].astype(str)
 
 fig = px.bar(
     tot_df,
-    x="quintile",
+    x="era",
     y="avg_total_minutes",
-    color="group",
+    color="Quintile",
     barmode="group",
-    labels={
-        "avg_total_minutes": "Average total minutes in aid stations",
-        "quintile": "Finisher quintile (1=fastest)",
-        "group": "Era",
-    },
+    category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
+    labels={"avg_total_minutes": "Avg total minutes in aid stations", "era": "Era", "Quintile": "Quintile"},
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# Average time per station, through the race
-st.subheader("Aid station time through the race")
-st.caption(
-    "Average aid station duration at each station, by quintile and era. X-axis is station mile so cross-era comparison is direct."
+# Average time per aid station stop — same layout, aggregated across stations
+st.subheader("Average time per aid station stop, by quintile")
+st.caption("Average duration per individual station stop, averaged across all stations in each era.")
+
+avg_by_era = (
+    ats_df.groupby(["era", "Quintile"], sort=False)["avg_minutes"]
+    .mean()
+    .reset_index()
 )
 
-ats_df = aid_time_per_quintile_per_station(runners, splits, gender=gender_filter)
-ats_df["avg_minutes"] = ats_df["avg_duration_seconds"] / 60
-ats_df["quintile"] = ats_df["quintile"].astype(int)
+fig = px.bar(
+    avg_by_era,
+    x="era",
+    y="avg_minutes",
+    color="Quintile",
+    barmode="group",
+    category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
+    labels={"avg_minutes": "Avg minutes per station stop", "era": "Era", "Quintile": "Quintile"},
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# Aid station time through the race — line chart (cross-era, by station mile)
+st.subheader("Aid station time through the race")
+st.caption(
+    "Average duration at each station by quintile. X-axis is station mile for direct cross-era comparison."
+)
 
 fig = px.line(
     ats_df,
     x="station_mile",
     y="avg_minutes",
-    color="quintile",
-    facet_col="group",
+    color="Quintile",
+    facet_col="era",
+    category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
     markers=True,
     labels={
         "avg_minutes": "Average minutes at station",
         "station_mile": "Station mile",
-        "quintile": "Quintile",
-        "group": "Era",
+        "Quintile": "Quintile",
+        "era": "Era",
     },
     hover_data=["station_name"],
+)
+st.plotly_chart(fig, use_container_width=True)
+
+# Bar chart by station number — era dropdown
+st.caption("Select an era to see average stop time at each station, grouped by quintile.")
+_era_col, _ = st.columns([1, 3])
+selected_era = _era_col.selectbox("Era", options=_ERA_ORDER, index=0, key="aid_era")
+
+era_bar_df = ats_df[ats_df["era"] == selected_era].copy()
+era_bar_df = era_bar_df.sort_values(["station_order", "quintile"])
+era_bar_df["Station"] = era_bar_df["station_order"].apply(lambda n: f"#{n:02d}")
+station_order_labels = era_bar_df.drop_duplicates("Station").sort_values("station_order")["Station"].tolist()
+
+fig = px.bar(
+    era_bar_df,
+    x="Station",
+    y="avg_minutes",
+    color="Quintile",
+    barmode="group",
+    category_orders={"Station": station_order_labels, "Quintile": ["1", "2", "3", "4", "5"]},
+    hover_data=["station_name", "station_mile"],
+    labels={"avg_minutes": "Avg minutes at station", "Station": "Station", "Quintile": "Quintile"},
 )
 st.plotly_chart(fig, use_container_width=True)
 
