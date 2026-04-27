@@ -78,20 +78,59 @@ CHART_CONFIG = {"displayModeBar": False}
 ACCENT_COLORS = ["#f0a500", "#7eb8f7", "#e05c5c", "#6fce8a", "#b48eff"]
 
 
-def render_scrollable_chart(fig, min_width: int = 900, height: int = 520) -> None:
+def render_scrollable_chart(
+    fig,
+    min_width: int = 900,
+    height: int = 520,
+    nav_labels: list[str] | None = None,
+) -> None:
     """Render a Plotly figure inside a horizontally scrollable container.
 
     For charts whose data density requires wider-than-viewport rendering on mobile.
+    If `nav_labels` is provided, renders quick-jump buttons above the chart that
+    scroll to evenly-spaced positions (one per label). Plotly's drag-zoom is
+    disabled so touch-swipe works anywhere on the chart instead of triggering a
+    box-zoom selection.
     """
-    fig.update_layout(width=min_width, height=height, autosize=False)
+    fig.update_layout(width=min_width, height=height, autosize=False, dragmode=False)
     inner = fig.to_html(include_plotlyjs="cdn", full_html=False, config=CHART_CONFIG)
+
+    nav_html = ""
+    nav_height = 0
+    if nav_labels:
+        btn_style = (
+            "background:#252b3b;border:1px solid #3a4156;color:#e8e8e8;"
+            "padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;"
+            "font-family:Inter,system-ui,sans-serif;"
+        )
+        buttons = "".join(
+            f'<button onclick="jumpTo({i})" style="{btn_style}">{label}</button>'
+            for i, label in enumerate(nav_labels)
+        )
+        n = len(nav_labels)
+        nav_html = f"""
+        <div style="display:flex;gap:6px;padding:4px 0 8px 0;flex-wrap:wrap;">{buttons}</div>
+        <script>
+            function jumpTo(idx) {{
+                const c = document.getElementById('scroll-wrap');
+                if (!c) return;
+                const max = Math.max(0, c.scrollWidth - c.clientWidth);
+                const n = {n};
+                const target = n > 1 ? max * idx / (n - 1) : 0;
+                c.scrollTo({{left: target, behavior: 'smooth'}});
+            }}
+        </script>
+        """
+        nav_height = 50
+
     wrapper = f"""
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#1a1f2e;
+    {nav_html}
+    <div id="scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#1a1f2e;
                 background-image:linear-gradient(to right, transparent calc(100% - 24px), rgba(26,31,46,0.9));">
       {inner}
     </div>
     """
-    components.html(wrapper, height=height + 20, scrolling=False)
+    components.html(wrapper, height=height + 20 + nav_height, scrolling=False)
 
 # ---------------------------------------------------------------------------
 # Page setup
@@ -377,8 +416,7 @@ fig = px.line(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.caption("↔ swipe to compare eras")
-render_scrollable_chart(fig, min_width=900, height=480)
+render_scrollable_chart(fig, min_width=900, height=480, nav_labels=_ERA_ORDER)
 
 # Bar chart by station number — era dropdown
 st.caption("Select an era to see average stop time at each station, grouped by quintile.")
@@ -392,18 +430,18 @@ station_order_labels = era_bar_df.drop_duplicates("Station").sort_values("statio
 
 fig = px.bar(
     era_bar_df,
-    x="Station",
-    y="avg_minutes",
+    x="avg_minutes",
+    y="Station",
     color="Quintile",
     barmode="group",
+    orientation="h",
     category_orders={"Station": station_order_labels, "Quintile": ["1", "2", "3", "4", "5"]},
     hover_data=["station_name", "station_mile"],
     labels={"avg_minutes": "Avg minutes at station", "Station": "Station", "Quintile": "Quintile"},
     color_discrete_sequence=ACCENT_COLORS,
 )
-fig.update_layout(**CHART_DEFAULTS)
-st.caption("↔ swipe to see all stations")
-render_scrollable_chart(fig, min_width=750, height=500)
+fig.update_layout(**CHART_DEFAULTS, height=720)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
 # ---------------------------------------------------------------------------
 # Footer
