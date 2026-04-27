@@ -288,13 +288,15 @@ st.caption(
     "2022–2025 - permanent course change; 12 aid stations. "
 )
 
-# Shared era config for aid station charts
+# Shared era config for aid station charts. Labels are kept short so they don't
+# rotate on narrow viewports (which would collide with the bottom legend);
+# aid-station counts are already documented in the section caption above.
 _ERA_LABELS = {
-    "Group 2": "Pre-2022 (13 aid stations)",
-    "2016": "2016 reroute (13 aid stations)",
-    "Group 3": "2022+ (12 aid stations)",
+    "Group 2": "Pre-2022",
+    "2016": "2016 reroute",
+    "Group 3": "2022+",
 }
-_ERA_ORDER = ["Pre-2022 (13 aid stations)", "2016 reroute (13 aid stations)", "2022+ (12 aid stations)"]
+_ERA_ORDER = ["Pre-2022", "2016 reroute", "2022+"]
 
 # Pre-compute per-station data (shared by all aid station charts below)
 ats_df = aid_time_per_quintile_per_station(runners, splits, gender=gender_filter)
