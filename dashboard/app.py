@@ -94,6 +94,30 @@ st.sidebar.markdown(f"**Total runners loaded:** {len(runners):,}")
 st.sidebar.markdown(f"**Total splits loaded:** {len(splits):,}")
 
 # ---------------------------------------------------------------------------
+# Course event annotations (shared across all time-series charts)
+# ---------------------------------------------------------------------------
+
+COURSE_EVENTS = [
+    {"year": 2016, "label": "2016 reroute", "color": "#f0a500", "dash": "dash"},
+    {"year": 2022, "label": "2022 course change", "color": "#7eb8f7", "dash": "dot"},
+]
+
+
+def _add_course_event_lines(fig) -> None:
+    for ev in COURSE_EVENTS:
+        fig.add_vline(
+            x=ev["year"],
+            line_dash=ev["dash"],
+            line_color=ev["color"],
+            line_width=1.5,
+            annotation_text=ev["label"],
+            annotation_position="top right",
+            annotation_font_size=11,
+            annotation_font_color=ev["color"],
+        )
+
+
+# ---------------------------------------------------------------------------
 # Hero stats
 # ---------------------------------------------------------------------------
 
@@ -116,8 +140,8 @@ st.caption(
 # Racer history (starters and finishers over time; gender filter applies)
 # ---------------------------------------------------------------------------
 
-st.header("Racer history")
-
+st.header("Race history")
+st.caption("1999-2007, 2011-2012 data contains finishers only.")
 history_df = racer_history_per_year(runners, gender=gender_filter)
 dnf_df = dnf_rate_per_year(runners, gender=gender_filter)
 
@@ -145,17 +169,28 @@ fig.add_trace(
 fig.update_yaxes(title_text="Racers", secondary_y=False)
 fig.update_yaxes(title_text="DNF Rate", tickformat=".0%", range=[0, 1], secondary_y=True)
 fig.update_layout(xaxis_title="Year", legend_title_text="")
+_add_course_event_lines(fig)
 st.plotly_chart(fig, use_container_width=True)
-
+st.caption(
+    "2016: one-off fire reroute. "
+    "2022: permanent course change; one aid station moved, one dropped."
+)
 # ---------------------------------------------------------------------------
 # Podium per year
 # ---------------------------------------------------------------------------
 
 st.header("Podium")
-
+st.caption("Top 3 finishers per gender.")
 year_options = sorted(runners["year"].unique(), reverse=True)
 _year_col, _ = st.columns([1, 4])
 selected_year = _year_col.selectbox("Year", year_options, index=0, key="podium_year")
+
+if selected_year == 2016:
+    st.info(
+        "**2016 used a different course** — an out-and-back from Logan to Tony's Grove. "
+        "Race directors declared these times ineligible for course records. "
+        "This year also had the highest DNF rate in race history."
+    )
 
 
 def _render_podium_table(df: pd.DataFrame) -> None:
@@ -172,53 +207,13 @@ def _render_podium_table(df: pd.DataFrame) -> None:
     )
 
 
-if gender_filter is None:
-    pcol1, pcol2 = st.columns(2)
-    with pcol1:
-        st.subheader("Men")
-        _render_podium_table(podium_per_year(runners, selected_year, "Male"))
-    with pcol2:
-        st.subheader("Women")
-        _render_podium_table(podium_per_year(runners, selected_year, "Female"))
-else:
-    st.subheader(gender_filter)
-    _render_podium_table(podium_per_year(runners, selected_year, gender_filter))
-
-
-# ---------------------------------------------------------------------------
-# Top 5 average finish time
-# ---------------------------------------------------------------------------
-
-st.header("Top 5 average finish time")
-st.caption(
-    "Per year and gender, the average of the top 5 finish times. Years with fewer than 5 finishers of that gender are skipped."
-)
-
-t5_year = top_n_average_per_year(runners, n=5, gender=gender_filter)
-t5_year["avg_top_n_hours"] = t5_year["avg_top_n_seconds"] / 3600
-
-fig = px.line(
-    t5_year,
-    x="year",
-    y="avg_top_n_hours",
-    color="gender" if gender_filter is None else None,
-    markers=True,
-    labels={"avg_top_n_hours": "Average top-5 finish (hours)", "year": "Year", "gender": "Gender"},
-)
-st.plotly_chart(fig, use_container_width=True)
-
-# Per-group summary table
-st.subheader("Top 5 average per group")
-t5g = top_n_average_per_group(runners, n=5, gender=gender_filter)
-t5g_show = t5g.copy()
-t5g_show["avg_top_5"] = t5g_show["avg_top_n_seconds"].apply(fmt_hm)
-st.dataframe(
-    t5g_show[["group", "gender", "avg_top_5", "n_finishers_in_group"]].rename(
-        columns={"n_finishers_in_group": "finishers in group"}
-    ),
-    hide_index=True,
-    use_container_width=True,
-)
+pcol1, pcol2 = st.columns(2)
+with pcol1:
+    st.subheader("Men")
+    _render_podium_table(podium_per_year(runners, selected_year, "Male"))
+with pcol2:
+    st.subheader("Women")
+    _render_podium_table(podium_per_year(runners, selected_year, "Female"))
 
 # ---------------------------------------------------------------------------
 # Overall yearly average finish
@@ -238,16 +233,23 @@ fig = px.line(
     markers=True,
     labels={"avg_hours": "Average finish (hours)", "year": "Year", "gender": "Gender"},
 )
+_add_course_event_lines(fig)
 st.plotly_chart(fig, use_container_width=True)
-
+st.caption(
+    "2016: one-off fire reroute. "
+    "2022: permanent course change; one aid station moved, one dropped."
+)
 # ---------------------------------------------------------------------------
 # Aid station analysis
 # ---------------------------------------------------------------------------
 
 st.header("Aid station analysis")
 st.caption(
-    "Aid station data only exists for years with split timing (Group 2: 2008–2010, 2013–2015, 2017–2021; "
-    "2016: out-and-back course; Group 3: 2022–2025). Group 1 years are excluded."
+    "Aid station data only exists for years with split timing. "
+    "Groups: 2008–2010, 2013–2015, 2017–2021 (Group 2, 14 stations); "
+    "2016 (out-and-back reroute, separate era); "
+    "2022–2025 (Group 3, permanent course change — 13 stations). "
+    "Group 1 years (1999–2007, 2011–2012) are excluded."
 )
 
 # Total time per quintile per group
