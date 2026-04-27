@@ -13,6 +13,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 from plotly.subplots import make_subplots
 
 # Make data and analysis modules importable when running via `streamlit run`
@@ -61,11 +62,36 @@ CHART_DEFAULTS = dict(
     paper_bgcolor="#1a1f2e",
     plot_bgcolor="#1a1f2e",
     font=dict(family="Inter, system-ui, sans-serif", color="#e8e8e8"),
-    margin=dict(l=40, r=40, t=40, b=40),
-    legend=dict(bgcolor="rgba(0,0,0,0)"),
+    margin=dict(l=20, r=20, t=30, b=30),
+    legend=dict(
+        bgcolor="rgba(0,0,0,0)",
+        orientation="h",
+        yanchor="top",
+        y=-0.15,
+        xanchor="left",
+        x=0,
+    ),
 )
 
+CHART_CONFIG = {"displayModeBar": False}
+
 ACCENT_COLORS = ["#f0a500", "#7eb8f7", "#e05c5c", "#6fce8a", "#b48eff"]
+
+
+def render_scrollable_chart(fig, min_width: int = 900, height: int = 520) -> None:
+    """Render a Plotly figure inside a horizontally scrollable container.
+
+    For charts whose data density requires wider-than-viewport rendering on mobile.
+    """
+    fig.update_layout(width=min_width, height=height, autosize=False)
+    inner = fig.to_html(include_plotlyjs="cdn", full_html=False, config=CHART_CONFIG)
+    wrapper = f"""
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#1a1f2e;
+                background-image:linear-gradient(to right, transparent calc(100% - 24px), rgba(26,31,46,0.9));">
+      {inner}
+    </div>
+    """
+    components.html(wrapper, height=height + 20, scrolling=False)
 
 # ---------------------------------------------------------------------------
 # Page setup
@@ -109,8 +135,8 @@ st.sidebar.markdown(f"**Total splits loaded:** {len(splits):,}")
 # ---------------------------------------------------------------------------
 
 COURSE_EVENTS = [
-    {"year": 2016, "label": "2016 reroute", "color": "#f0a500", "dash": "dash"},
-    {"year": 2022, "label": "2022 course change", "color": "#7eb8f7", "dash": "dot"},
+    {"year": 2016, "label": "2016", "color": "#f0a500", "dash": "dash", "annotation_position": "bottom left"},
+    {"year": 2022, "label": "2022", "color": "#7eb8f7", "dash": "dot", "annotation_position": "bottom right"},
 ]
 
 
@@ -122,7 +148,7 @@ def _add_course_event_lines(fig) -> None:
             line_color=ev["color"],
             line_width=1.5,
             annotation_text=ev["label"],
-            annotation_position="top right",
+            annotation_position=ev["annotation_position"],
             annotation_font_size=11,
             annotation_font_color=ev["color"],
         )
@@ -176,11 +202,11 @@ fig.add_trace(
     secondary_y=True,
 )
 
-fig.update_yaxes(title_text="Racers", secondary_y=False)
-fig.update_yaxes(title_text="DNF Rate", tickformat=".0%", range=[0, 1], secondary_y=True)
+fig.update_yaxes(title_text="Racers", automargin=True, secondary_y=False)
+fig.update_yaxes(title_text="DNF Rate", tickformat=".0%", range=[0, 1], automargin=True, secondary_y=True)
 fig.update_layout(xaxis_title="Year", legend_title_text="", **CHART_DEFAULTS)
 _add_course_event_lines(fig)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 st.caption(
     "2016: one-off fire reroute. "
     "2022: permanent course change; one aid station moved, one dropped."
@@ -246,7 +272,7 @@ fig = px.line(
 )
 fig.update_layout(**CHART_DEFAULTS)
 _add_course_event_lines(fig)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 st.caption(
     "2016: one-off fire reroute. "
     "2022: permanent course change; one aid station moved, one dropped."
@@ -300,7 +326,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
 # Average time per aid station stop — same layout, aggregated across stations
 st.subheader("Average time per aid station stop, by quintile")
@@ -323,7 +349,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
 # Aid station time through the race — line chart (cross-era, by station mile)
 st.subheader("Aid station time through the race")
@@ -349,7 +375,8 @@ fig = px.line(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True)
+st.caption("↔ swipe to compare eras")
+render_scrollable_chart(fig, min_width=900, height=480)
 
 # Bar chart by station number — era dropdown
 st.caption("Select an era to see average stop time at each station, grouped by quintile.")
@@ -373,7 +400,8 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True)
+st.caption("↔ swipe to see all stations")
+render_scrollable_chart(fig, min_width=750, height=500)
 
 # ---------------------------------------------------------------------------
 # Footer

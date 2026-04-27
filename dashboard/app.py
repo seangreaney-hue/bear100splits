@@ -30,9 +30,18 @@ CHART_DEFAULTS = dict(
     paper_bgcolor="#1a1f2e",
     plot_bgcolor="#1a1f2e",
     font=dict(family="Inter, system-ui, sans-serif", color="#e8e8e8"),
-    margin=dict(l=40, r=40, t=40, b=40),
-    legend=dict(bgcolor="rgba(0,0,0,0)"),
+    margin=dict(l=20, r=20, t=30, b=30),
+    legend=dict(
+        bgcolor="rgba(0,0,0,0)",
+        orientation="h",
+        yanchor="top",
+        y=-0.15,
+        xanchor="left",
+        x=0,
+    ),
 )
+
+CHART_CONFIG = {"displayModeBar": False}
 
 ACCENT_COLORS = ["#f0a500", "#7eb8f7", "#e05c5c", "#6fce8a", "#b48eff"]
 
@@ -240,7 +249,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
 # ---------------------------------------------------------------------------
 # 5. Splits validity breakdown — the centerpiece
@@ -313,7 +322,7 @@ fig = px.bar(
     labels={"count": "Splits", "year": "Year", "quality_flag": "Quality"},
 )
 fig.update_layout(barmode="stack", **CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
 # Per-station validity table — which stations lose the most data
 st.subheader("Per-station validity")
@@ -441,7 +450,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
 # Finish time histogram, faceted by group (Group 1 included — finish times exist there)
 st.subheader("Finish-time distribution by group")
@@ -468,7 +477,7 @@ fig = px.histogram(
 )
 fig.update_layout(**CHART_DEFAULTS)
 fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
 # Compact summary stats
 fin_stats = (
