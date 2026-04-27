@@ -154,7 +154,8 @@ st.plotly_chart(fig, use_container_width=True)
 st.header("Podium")
 
 year_options = sorted(runners["year"].unique(), reverse=True)
-selected_year = st.selectbox("Year", year_options, index=0, key="podium_year")
+_year_col, _ = st.columns([1, 4])
+selected_year = _year_col.selectbox("Year", year_options, index=0, key="podium_year")
 
 
 def _render_podium_table(df: pd.DataFrame) -> None:
