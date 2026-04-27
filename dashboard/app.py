@@ -57,6 +57,21 @@ def fmt_hm(seconds) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Shared chart styling
+# ---------------------------------------------------------------------------
+
+CHART_DEFAULTS = dict(
+    template="plotly_dark",
+    paper_bgcolor="#1a1f2e",
+    plot_bgcolor="#1a1f2e",
+    font=dict(family="Inter, system-ui, sans-serif", color="#e8e8e8"),
+    margin=dict(l=40, r=40, t=40, b=40),
+    legend=dict(bgcolor="rgba(0,0,0,0)"),
+)
+
+ACCENT_COLORS = ["#f0a500", "#7eb8f7", "#e05c5c", "#6fce8a", "#b48eff"]
+
+# ---------------------------------------------------------------------------
 # Page setup
 # ---------------------------------------------------------------------------
 
@@ -147,11 +162,10 @@ dnf_df = dnf_rate_per_year(runners, gender=gender_filter)
 
 fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-colors = px.colors.qualitative.Plotly
 for i, metric in enumerate(["Finishers", "Starters"]):
     grp = history_df[history_df["metric"] == metric]
     fig.add_trace(
-        go.Scatter(x=grp["year"], y=grp["count"], name=metric, mode="lines", line=dict(color=colors[i])),
+        go.Scatter(x=grp["year"], y=grp["count"], name=metric, mode="lines", line=dict(color=ACCENT_COLORS[i])),
         secondary_y=False,
     )
 
@@ -161,14 +175,14 @@ fig.add_trace(
         y=dnf_df["dnf_rate"],
         name="DNF Rate",
         mode="lines",
-        line=dict(dash="dot", color=colors[2]),
+        line=dict(dash="dot", color=ACCENT_COLORS[2]),
     ),
     secondary_y=True,
 )
 
 fig.update_yaxes(title_text="Racers", secondary_y=False)
 fig.update_yaxes(title_text="DNF Rate", tickformat=".0%", range=[0, 1], secondary_y=True)
-fig.update_layout(xaxis_title="Year", legend_title_text="")
+fig.update_layout(xaxis_title="Year", legend_title_text="", **CHART_DEFAULTS)
 _add_course_event_lines(fig)
 st.plotly_chart(fig, use_container_width=True)
 st.caption(
@@ -232,7 +246,9 @@ fig = px.line(
     color="gender" if gender_filter is None else None,
     markers=True,
     labels={"avg_hours": "Average finish (hours)", "year": "Year", "gender": "Gender"},
+    color_discrete_sequence=ACCENT_COLORS,
 )
+fig.update_layout(**CHART_DEFAULTS)
 _add_course_event_lines(fig)
 st.plotly_chart(fig, use_container_width=True)
 st.caption(
@@ -285,7 +301,9 @@ fig = px.bar(
     barmode="group",
     category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
     labels={"avg_total_minutes": "Avg total minutes in aid stations", "era": "Era", "Quintile": "Quintile"},
+    color_discrete_sequence=ACCENT_COLORS,
 )
+fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True)
 
 # Average time per aid station stop — same layout, aggregated across stations
@@ -306,7 +324,9 @@ fig = px.bar(
     barmode="group",
     category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
     labels={"avg_minutes": "Avg minutes per station stop", "era": "Era", "Quintile": "Quintile"},
+    color_discrete_sequence=ACCENT_COLORS,
 )
+fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True)
 
 # Aid station time through the race — line chart (cross-era, by station mile)
@@ -330,7 +350,9 @@ fig = px.line(
         "era": "Era",
     },
     hover_data=["station_name"],
+    color_discrete_sequence=ACCENT_COLORS,
 )
+fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True)
 
 # Bar chart by station number — era dropdown
@@ -352,7 +374,9 @@ fig = px.bar(
     category_orders={"Station": station_order_labels, "Quintile": ["1", "2", "3", "4", "5"]},
     hover_data=["station_name", "station_mile"],
     labels={"avg_minutes": "Avg minutes at station", "Station": "Station", "Quintile": "Quintile"},
+    color_discrete_sequence=ACCENT_COLORS,
 )
+fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------------------------------------------------------
