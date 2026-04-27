@@ -63,7 +63,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("Data Notes")
+st.title("Data Notes - Bear 100 race results")
 st.caption(
     "Methodology, validation, and exploratory data analysis. "
     "The numbers below are computed live from the loaded CSVs."
