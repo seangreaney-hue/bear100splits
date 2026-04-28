@@ -13,7 +13,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 from plotly.subplots import make_subplots
 
 # Make data and analysis modules importable when running via `streamlit run`
@@ -54,60 +53,6 @@ def fmt_hm(seconds) -> str:
     s = int(seconds)
     return f"{s // 3600}h {(s % 3600) // 60:02d}m"
 
-
-def render_scrollable_chart(
-    fig,
-    min_width: int = 900,
-    height: int = 520,
-    nav_labels: list[str] | None = None,
-) -> None:
-    """Render a Plotly figure inside a horizontally scrollable container.
-
-    For charts whose data density requires wider-than-viewport rendering on mobile.
-    If `nav_labels` is provided, renders quick-jump buttons above the chart that
-    scroll to evenly-spaced positions (one per label). Plotly's drag-zoom is
-    disabled so touch-swipe works anywhere on the chart instead of triggering a
-    box-zoom selection.
-    """
-    fig.update_layout(width=min_width, height=height, autosize=False, dragmode=False)
-    inner = fig.to_html(include_plotlyjs="cdn", full_html=False, config=CHART_CONFIG)
-
-    nav_html = ""
-    nav_height = 0
-    if nav_labels:
-        btn_style = (
-            "background:#252b3b;border:1px solid #3a4156;color:#e8e8e8;"
-            "padding:6px 12px;border-radius:6px;font-size:13px;cursor:pointer;"
-            "font-family:Inter,system-ui,sans-serif;"
-        )
-        buttons = "".join(
-            f'<button onclick="jumpTo({i})" style="{btn_style}">{label}</button>'
-            for i, label in enumerate(nav_labels)
-        )
-        n = len(nav_labels)
-        nav_html = f"""
-        <div style="display:flex;gap:6px;padding:4px 0 8px 0;flex-wrap:wrap;">{buttons}</div>
-        <script>
-            function jumpTo(idx) {{
-                const c = document.getElementById('scroll-wrap');
-                if (!c) return;
-                const max = Math.max(0, c.scrollWidth - c.clientWidth);
-                const n = {n};
-                const target = n > 1 ? max * idx / (n - 1) : 0;
-                c.scrollTo({{left: target, behavior: 'smooth'}});
-            }}
-        </script>
-        """
-        nav_height = 50
-
-    wrapper = f"""
-    {nav_html}
-    <div id="scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;background:#1a1f2e;
-                background-image:linear-gradient(to right, transparent calc(100% - 24px), rgba(26,31,46,0.9));">
-      {inner}
-    </div>
-    """
-    components.html(wrapper, height=height + 20 + nav_height, scrolling=False)
 
 # ---------------------------------------------------------------------------
 # Page setup
@@ -323,89 +268,98 @@ ats_df["quintile"] = ats_df["quintile"].astype(int)
 ats_df["Quintile"] = ats_df["quintile"].astype(str)
 ats_df["era"] = ats_df["group"].map(_ERA_LABELS)
 
-# Total time per quintile — bars grouped by quintile, clustered by era
+tot_df = total_aid_time_per_quintile(runners, splits, gender=gender_filter)
+tot_df["avg_total_minutes"] = tot_df["avg_total_aid_seconds"] / 60
+tot_df["era"] = tot_df["group"].map(_ERA_LABELS)
+tot_df["Quintile"] = tot_df["quintile"].astype(str)
+
+# Era filter — shared by all aid-station charts below
+_era_options = ["All eras"] + _ERA_ORDER
+_era_col, _ = st.columns([1, 3])
+selected_era = _era_col.selectbox("Era", options=_era_options, index=0, key="aid_era")
+
+ats_plot = ats_df if selected_era == "All eras" else ats_df[ats_df["era"] == selected_era]
+tot_plot_base = tot_df if selected_era == "All eras" else tot_df[tot_df["era"] == selected_era]
+
+# Total time per quintile
 st.subheader("Total time spent in aid stations, by finisher quintile")
 st.caption(
     "Quintile 1 = fastest 20% of finishers. Only runners with a valid split at every station are counted. "
     "Quintiles are assigned within this complete-data population."
 )
 
-tot_df = total_aid_time_per_quintile(runners, splits, gender=gender_filter)
-tot_df["avg_total_minutes"] = tot_df["avg_total_aid_seconds"] / 60
-tot_df["era"] = tot_df["group"].map(_ERA_LABELS)
-tot_df["Quintile"] = tot_df["quintile"].astype(str)
-
+tot_agg = tot_plot_base.groupby("Quintile", sort=False)["avg_total_minutes"].mean().reset_index()
 fig = px.bar(
-    tot_df,
-    x="era",
+    tot_agg,
+    x="Quintile",
     y="avg_total_minutes",
     color="Quintile",
-    barmode="group",
-    category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
-    labels={"avg_total_minutes": "Avg total minutes in aid stations", "era": "Era", "Quintile": "Quintile"},
+    category_orders={"Quintile": ["1", "2", "3", "4", "5"]},
+    labels={"avg_total_minutes": "Avg total minutes in aid stations", "Quintile": "Quintile"},
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
-# Average time per aid station stop — same layout, aggregated across stations
+# Average time per aid station stop
 st.subheader("Average time per aid station stop, by quintile")
-st.caption("Average duration per individual station stop, averaged across all stations in each era.")
+st.caption("Average duration per individual station stop, averaged across all stations in the selection.")
 
-avg_by_era = (
-    ats_df.groupby(["era", "Quintile"], sort=False)["avg_minutes"]
-    .mean()
-    .reset_index()
-)
-
+avg_by_quintile = ats_plot.groupby("Quintile", sort=False)["avg_minutes"].mean().reset_index()
 fig = px.bar(
-    avg_by_era,
-    x="era",
+    avg_by_quintile,
+    x="Quintile",
     y="avg_minutes",
     color="Quintile",
-    barmode="group",
-    category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
-    labels={"avg_minutes": "Avg minutes per station stop", "era": "Era", "Quintile": "Quintile"},
+    category_orders={"Quintile": ["1", "2", "3", "4", "5"]},
+    labels={"avg_minutes": "Avg minutes per station stop", "Quintile": "Quintile"},
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
-# Aid station time through the race — line chart (cross-era, by station mile)
+# Aid station time through the race — line chart by station mile
 st.subheader("Aid station time through the race")
 st.caption(
-    "Average duration at each station by quintile. X-axis is station mile for direct cross-era comparison."
+    "Average duration at each station by quintile. X-axis is station mile. "
+    "When all eras are shown, stations from different eras may appear at overlapping miles."
 )
 
 fig = px.line(
-    ats_df,
+    ats_plot,
     x="station_mile",
     y="avg_minutes",
     color="Quintile",
-    facet_col="era",
-    category_orders={"era": _ERA_ORDER, "Quintile": ["1", "2", "3", "4", "5"]},
+    category_orders={"Quintile": ["1", "2", "3", "4", "5"]},
     markers=True,
     labels={
         "avg_minutes": "Average minutes at station",
         "station_mile": "Station mile",
         "Quintile": "Quintile",
-        "era": "Era",
     },
     hover_data=["station_name"],
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-render_scrollable_chart(fig, min_width=900, height=480, nav_labels=_ERA_ORDER)
+st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
-# Bar chart by station number — era dropdown
-st.caption("Select an era to see average stop time at each station, grouped by quintile.")
-_era_col, _ = st.columns([1, 3])
-selected_era = _era_col.selectbox("Era", options=_ERA_ORDER, index=0, key="aid_era")
+# Average stop time by station — horizontal bar
+st.subheader("Average stop time by station")
+st.caption("Average stop time at each aid station, grouped by quintile.")
 
-era_bar_df = ats_df[ats_df["era"] == selected_era].copy()
-era_bar_df = era_bar_df.sort_values(["station_order", "quintile"])
-era_bar_df["Station"] = era_bar_df["station_order"].apply(lambda n: f"#{n:02d}")
-station_order_labels = era_bar_df.drop_duplicates("Station").sort_values("station_order")["Station"].tolist()
+if selected_era == "All eras":
+    era_bar_df = (
+        ats_plot
+        .groupby(["station_name", "station_mile", "Quintile", "quintile"], as_index=False)["avg_minutes"]
+        .mean()
+        .sort_values(["station_mile", "quintile"])
+    )
+else:
+    era_bar_df = ats_plot.sort_values(["station_order", "quintile"])
+era_bar_df["Station"] = era_bar_df["station_name"]
+station_order_labels = (
+    era_bar_df.drop_duplicates("Station").sort_values("station_mile")["Station"].tolist()
+)
 
 fig = px.bar(
     era_bar_df,
