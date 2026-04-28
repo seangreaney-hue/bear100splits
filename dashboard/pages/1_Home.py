@@ -318,31 +318,6 @@ fig = px.bar(
 fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
-# Aid station time through the race — line chart by station mile
-st.subheader("Aid station time through the race")
-st.caption(
-    "Average duration at each station by quintile. X-axis is station mile. "
-    "When all eras are shown, stations from different eras may appear at overlapping miles."
-)
-
-fig = px.line(
-    ats_plot,
-    x="station_mile",
-    y="avg_minutes",
-    color="Quintile",
-    category_orders={"Quintile": ["1", "2", "3", "4", "5"]},
-    markers=True,
-    labels={
-        "avg_minutes": "Average minutes at station",
-        "station_mile": "Station mile",
-        "Quintile": "Quintile",
-    },
-    hover_data=["station_name"],
-    color_discrete_sequence=ACCENT_COLORS,
-)
-fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
-
 # Average stop time by station — horizontal bar (per-station avg, optional quintile filter)
 st.subheader("Average stop time by station")
 st.caption("Average stop time at each aid station. Defaults to all runners; use the dropdown to filter by quintile.")
