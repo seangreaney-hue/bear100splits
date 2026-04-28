@@ -15,8 +15,11 @@ import streamlit as st
 # Make sibling modules importable
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from data import load_all  # noqa: E402
+from nav import render_nav  # noqa: E402
 
 st.set_page_config(page_title="Year details — Bear 100", layout="wide")
+
+render_nav()
 
 st.title("Year details")
 st.caption("Raw CSV view (per-year analytics coming in a later iteration).")

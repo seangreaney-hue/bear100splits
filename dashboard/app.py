@@ -20,30 +20,8 @@ import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent))
 from data import GROUP_BY_YEAR, load_all  # noqa: E402
-
-# ---------------------------------------------------------------------------
-# Shared chart styling (mirrors pages/1_Home.py for visual consistency)
-# ---------------------------------------------------------------------------
-
-CHART_DEFAULTS = dict(
-    template="plotly_dark",
-    paper_bgcolor="#1a1f2e",
-    plot_bgcolor="#1a1f2e",
-    font=dict(family="Inter, system-ui, sans-serif", color="#e8e8e8"),
-    margin=dict(l=20, r=20, t=30, b=30),
-    legend=dict(
-        bgcolor="rgba(0,0,0,0)",
-        orientation="h",
-        yanchor="top",
-        y=-0.15,
-        xanchor="left",
-        x=0,
-    ),
-)
-
-CHART_CONFIG = {"displayModeBar": False}
-
-ACCENT_COLORS = ["#f0a500", "#7eb8f7", "#e05c5c", "#6fce8a", "#b48eff"]
+from nav import render_nav  # noqa: E402
+from streamlit_utils.chart_config import ACCENT_COLORS, CHART_CONFIG, CHART_DEFAULTS  # noqa: E402
 
 QUALITY_COLORS = {
     "ok": "#6fce8a",
@@ -62,6 +40,8 @@ st.set_page_config(
     page_icon="🐻",
     layout="wide",
 )
+
+render_nav()
 
 st.title("Data Notes - Bear 100 race results")
 st.caption(

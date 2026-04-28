@@ -19,6 +19,7 @@ from plotly.subplots import make_subplots
 # Make data and analysis modules importable when running via `streamlit run`
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from data import load_all  # noqa: E402
+from nav import render_nav  # noqa: E402
 from analysis import (  # noqa: E402
     aid_time_per_quintile_per_station,
     dnf_rate_per_year,
@@ -30,6 +31,7 @@ from analysis import (  # noqa: E402
     top_n_average_per_year,
     total_aid_time_per_quintile,
 )
+from streamlit_utils.chart_config import ACCENT_COLORS, CHART_CONFIG, CHART_DEFAULTS  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -51,31 +53,6 @@ def fmt_hm(seconds) -> str:
         return "—"
     s = int(seconds)
     return f"{s // 3600}h {(s % 3600) // 60:02d}m"
-
-
-# ---------------------------------------------------------------------------
-# Shared chart styling
-# ---------------------------------------------------------------------------
-
-CHART_DEFAULTS = dict(
-    template="plotly_dark",
-    paper_bgcolor="#1a1f2e",
-    plot_bgcolor="#1a1f2e",
-    font=dict(family="Inter, system-ui, sans-serif", color="#e8e8e8"),
-    margin=dict(l=20, r=20, t=30, b=30),
-    legend=dict(
-        bgcolor="rgba(0,0,0,0)",
-        orientation="h",
-        yanchor="top",
-        y=-0.15,
-        xanchor="left",
-        x=0,
-    ),
-)
-
-CHART_CONFIG = {"displayModeBar": False}
-
-ACCENT_COLORS = ["#f0a500", "#7eb8f7", "#e05c5c", "#6fce8a", "#b48eff"]
 
 
 def render_scrollable_chart(
@@ -141,6 +118,8 @@ st.set_page_config(
     page_icon="🐻",
     layout="wide",
 )
+
+render_nav()
 
 st.title("The Bear 100")
 st.caption("27 years of ultramarathon results from opensplittime.org")

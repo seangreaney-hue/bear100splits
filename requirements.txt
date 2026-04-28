@@ -2,3 +2,4 @@ streamlit>=1.30
 pandas>=2.0
 plotly>=5.18
 beautifulsoup4>=4.12
+git+https://github.com/seangreaney-hue/streamlit-utils.git
