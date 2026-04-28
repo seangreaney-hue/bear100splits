@@ -343,38 +343,81 @@ fig = px.line(
 fig.update_layout(**CHART_DEFAULTS)
 st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
 
-# Average stop time by station — horizontal bar
+# Average stop time by station — horizontal bar (per-station avg, optional quintile filter)
 st.subheader("Average stop time by station")
-st.caption("Average stop time at each aid station, grouped by quintile.")
-
-if selected_era == "All eras":
-    era_bar_df = (
-        ats_plot
-        .groupby(["station_name", "station_mile", "Quintile", "quintile"], as_index=False)["avg_minutes"]
-        .mean()
-        .sort_values(["station_mile", "quintile"])
-    )
-else:
-    era_bar_df = ats_plot.sort_values(["station_order", "quintile"])
-era_bar_df["Station"] = era_bar_df["station_name"]
-station_order_labels = (
-    era_bar_df.drop_duplicates("Station").sort_values("station_mile")["Station"].tolist()
+st.caption("Average stop time at each aid station. Defaults to all runners; use the dropdown to filter by quintile.")
+st.markdown(
+    "Station numbers are the sequence within each era. "
+    "See the **Aid station legend** at the bottom of this page for the name and mileage of each numbered station."
 )
+
+_quintile_options = [
+    "All runners",
+    "Quintile 1 (fastest)",
+    "Quintile 2",
+    "Quintile 3",
+    "Quintile 4",
+    "Quintile 5 (slowest)",
+]
+_q_col, _ = st.columns([1, 3])
+selected_quintile = _q_col.selectbox(
+    "Quintile",
+    options=_quintile_options,
+    index=0,
+    key="aid_station_quintile",
+)
+
+if selected_quintile == "All runners":
+    src = ats_plot
+else:
+    q_int = int(selected_quintile.split()[1])
+    src = ats_plot[ats_plot["quintile"] == q_int]
+
+agg = (
+    src.assign(_w=src["avg_minutes"] * src["n_valid_splits"])
+    .groupby("station_order", as_index=False)
+    .agg(_w_sum=("_w", "sum"), _n=("n_valid_splits", "sum"))
+)
+agg["avg_minutes"] = agg["_w_sum"] / agg["_n"]
+agg = agg.sort_values("station_order")
+agg["Station"] = agg["station_order"].astype(str)
+station_order_labels = agg["Station"].tolist()
 
 fig = px.bar(
-    era_bar_df,
+    agg,
     x="avg_minutes",
     y="Station",
-    color="Quintile",
-    barmode="group",
     orientation="h",
-    category_orders={"Station": station_order_labels, "Quintile": ["1", "2", "3", "4", "5"]},
-    hover_data=["station_name", "station_mile"],
-    labels={"avg_minutes": "Avg minutes at station", "Station": "Station", "Quintile": "Quintile"},
+    category_orders={"Station": station_order_labels},
+    labels={"avg_minutes": "Avg minutes at station", "Station": "Aid station #"},
     color_discrete_sequence=ACCENT_COLORS,
 )
-fig.update_layout(**CHART_DEFAULTS, height=720)
+fig.update_layout(**CHART_DEFAULTS, height=480)
 st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+
+# ---------------------------------------------------------------------------
+# Aid station legend
+# ---------------------------------------------------------------------------
+
+st.header("Aid station legend")
+st.caption(
+    "Each era has its own sequence of aid stations. The tables below decode the "
+    "station numbers used in the 'Average stop time by station' chart above."
+)
+
+legend = (
+    ats_df.drop_duplicates(["era", "station_order"])
+    [["era", "station_order", "station_name", "station_mile"]]
+    .sort_values(["era", "station_order"])
+    .rename(columns={"station_order": "#", "station_name": "Station", "station_mile": "Mile"})
+)
+
+_lcols = st.columns(3)
+for col, era_name in zip(_lcols, _ERA_ORDER):
+    with col:
+        st.subheader(era_name)
+        era_legend = legend[legend["era"] == era_name][["#", "Station", "Mile"]]
+        st.dataframe(era_legend, hide_index=True, use_container_width=True)
 
 # ---------------------------------------------------------------------------
 # Footer
