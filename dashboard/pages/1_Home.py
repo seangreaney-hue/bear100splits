@@ -150,7 +150,7 @@ fig = make_subplots(specs=[[{"secondary_y": True}]])
 for i, metric in enumerate(["Finishers", "Starters"]):
     grp = history_df[history_df["metric"] == metric]
     fig.add_trace(
-        go.Scatter(x=grp["year"], y=grp["count"], name=metric, mode="lines", line=dict(color=ACCENT_COLORS[i])),
+        go.Scatter(x=grp["year"], y=grp["count"], name=metric, mode="lines", line=dict(color=ACCENT_COLORS[i], width=3)),
         secondary_y=False,
     )
 
@@ -160,7 +160,7 @@ fig.add_trace(
         y=dnf_df["dnf_rate"],
         name="DNF Rate",
         mode="lines",
-        line=dict(dash="dot", color=ACCENT_COLORS[2]),
+        line=dict(dash="dot", color=ACCENT_COLORS[2], width=3),
     ),
     secondary_y=True,
 )
@@ -234,6 +234,7 @@ fig = px.line(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
+fig.update_traces(line=dict(width=3))
 _add_course_event_lines(fig)
 st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 st.caption(
