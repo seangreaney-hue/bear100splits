@@ -133,7 +133,7 @@ c4.metric("Finish rate*", f"{stats['finish_rate']:.1%}")
 c5.metric("DNF rate*", f"{stats['dnf_rate']:.1%}")
 
 st.caption(
-    "*Finish\DNF rate excludes years 1999-2007, 2011-2012 which only recorded finishers."
+    "*Finish/DNF rate excludes years 1999-2007, 2011-2012 which only recorded finishers."
 )
 
 # ---------------------------------------------------------------------------
@@ -169,7 +169,7 @@ fig.update_yaxes(title_text="Racers", automargin=True, secondary_y=False)
 fig.update_yaxes(title_text="DNF Rate", tickformat=".0%", range=[0, 1], automargin=True, secondary_y=True)
 fig.update_layout(xaxis_title="Year", legend_title_text="", **CHART_DEFAULTS)
 _add_course_event_lines(fig)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 st.caption(
     "2016: one-off fire reroute. "
     "2022: permanent course change; one aid station moved, one dropped."
@@ -202,7 +202,7 @@ def _render_podium_table(df: pd.DataFrame) -> None:
     st.dataframe(
         show[["place", "name", "time"]],
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -235,7 +235,7 @@ fig = px.line(
 )
 fig.update_layout(**CHART_DEFAULTS)
 _add_course_event_lines(fig)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 st.caption(
     "2016: one-off fire reroute. "
     "2022: permanent course change; one aid station moved, one dropped."
@@ -299,7 +299,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
 # Average time per aid station stop
 st.subheader("Average time per aid station stop, by quintile")
@@ -316,7 +316,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
 # Average stop time by station — horizontal bar (per-station avg, optional quintile filter)
 st.subheader("Average stop time by station")
@@ -368,7 +368,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS, height=480)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
 # ---------------------------------------------------------------------------
 # Aid station legend
@@ -392,7 +392,7 @@ for col, era_name in zip(_lcols, _ERA_ORDER):
     with col:
         st.subheader(era_name)
         era_legend = legend[legend["era"] == era_name][["#", "Station", "Mile"]]
-        st.dataframe(era_legend, hide_index=True, use_container_width=True)
+        st.dataframe(era_legend, hide_index=True, width="stretch")
 
 # ---------------------------------------------------------------------------
 # Footer

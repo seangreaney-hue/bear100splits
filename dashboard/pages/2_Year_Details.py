@@ -53,4 +53,4 @@ c3.metric("Finishers", f"{n_finishers:,}")
 c4.metric("DNFs", f"{n_dropped:,}" if n_dropped > 0 else "—")
 
 st.subheader(f"{selected_year} — full results")
-st.dataframe(raw, use_container_width=True, hide_index=True)
+st.dataframe(raw, width="stretch", hide_index=True)

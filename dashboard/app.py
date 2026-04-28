@@ -132,7 +132,7 @@ era_df = pd.DataFrame(era_rows)
 # Sort so Group 1, Group 2, 2016, Group 3 appear in chronological order
 era_df["_sort"] = era_df["Group"].map({"Group 1": 0, "Group 2": 1, "2016": 2, "Group 3": 3})
 era_df = era_df.sort_values("_sort").drop(columns="_sort").reset_index(drop=True)
-st.dataframe(era_df, hide_index=True, use_container_width=True)
+st.dataframe(era_df, hide_index=True, width="stretch")
 
 with st.expander("Why 2016 stands alone"):
     st.markdown(
@@ -203,7 +203,7 @@ status_pivot = status_pivot[
     ["year", "group", "Total", "Starters", "Finished", "Dropped", "Not Started", "In Progress"]
 ]
 status_pivot = status_pivot.rename(columns={"year": "Year", "group": "Group", "Dropped": "DNF"})
-st.dataframe(status_pivot, hide_index=True, use_container_width=True)
+st.dataframe(status_pivot, hide_index=True, width="stretch")
 
 # Status mix by group — small bar chart
 st.subheader("Status mix by group")
@@ -229,7 +229,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
 # ---------------------------------------------------------------------------
 # 5. Splits validity breakdown — the centerpiece
@@ -302,7 +302,7 @@ fig = px.bar(
     labels={"count": "Splits", "year": "Year", "quality_flag": "Quality"},
 )
 fig.update_layout(barmode="stack", **CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
 # Per-station validity table — which stations lose the most data
 st.subheader("Per-station validity")
@@ -341,7 +341,7 @@ station_stats = station_stats.rename(
 st.dataframe(
     station_stats[["Station", "Mile", "Total", "OK", "Incomplete", "Negative", "Phantom", "Validity"]],
     hide_index=True,
-    use_container_width=True,
+    width="stretch",
 )
 
 # ---------------------------------------------------------------------------
@@ -430,7 +430,7 @@ fig = px.bar(
     color_discrete_sequence=ACCENT_COLORS,
 )
 fig.update_layout(**CHART_DEFAULTS)
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
 # Finish time histogram, faceted by group (Group 1 included — finish times exist there)
 st.subheader("Finish-time distribution by group")
@@ -457,7 +457,7 @@ fig = px.histogram(
 )
 fig.update_layout(**CHART_DEFAULTS)
 fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
-st.plotly_chart(fig, use_container_width=True, config=CHART_CONFIG)
+st.plotly_chart(fig, width="stretch", config=CHART_CONFIG)
 
 # Compact summary stats
 fin_stats = (
@@ -484,7 +484,7 @@ fin_stats = fin_stats.rename(columns={"group": "Group", "count": "# finishers"})
 st.dataframe(
     fin_stats[["Group", "# finishers", "Fastest", "Median", "Mean", "Slowest"]],
     hide_index=True,
-    use_container_width=True,
+    width="stretch",
 )
 
 # ---------------------------------------------------------------------------
